@@ -14,3 +14,6 @@ $lang['error_nomatch'] = 'Keine Treffer';
 $lang['error_outsidejail'] = 'Zugriff verweigert';
 $lang['preview'] = 'Vorschau';
 $lang['filetype'] = 'Dateityp';
+$lang['edit_files'] = 'Dateien bearbeiten';
+$lang['refresh_filelist'] = 'Aktualisieren';
+$lang['js']['button'] = 'Dateiliste des aktuellen Namensraums';

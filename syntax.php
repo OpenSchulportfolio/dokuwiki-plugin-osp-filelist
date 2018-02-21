@@ -41,6 +41,7 @@ class syntax_plugin_filelist extends DokuWiki_Syntax_Plugin {
     function connectTo($mode) {
         $this->Lexer->addSpecialPattern('\{\{filename>.+?\}\}',$mode,'plugin_filelist');
         $this->Lexer->addSpecialPattern('\{\{filelist>.+?\}\}',$mode,'plugin_filelist');
+	$this->Lexer->addSpecialPattern('\{\{simplefilelist>.+?\}\}',$mode,'plugin_filelist');
     }
 
     /**
@@ -102,6 +103,22 @@ class syntax_plugin_filelist extends DokuWiki_Syntax_Plugin {
             $params['recursive'] = 0;
         }
 
+        // backwards compatibility for osp's simplefilelist command
+        // could be obsolete because of the default config option which 
+        // was introduced upstream in the meantime
+	if ($type == 'simplefilelist' ) {
+		$params['style']="table";
+		$type = 'filelist';
+
+		// get defaults for simplefilelist
+		$simplefilelist_defaults = explode(",", $this->getConf('simplefilelist_defaults'));
+		if (in_array("tableheader", $simplefilelist_defaults)) $params['tableheader']=1;
+		if (in_array("toolbar", $simplefilelist_defaults)) $params['toolbar']=1;
+		if (in_array("tableshowdate", $simplefilelist_defaults)) $params['tableshowdate']=1;
+		if (in_array("tableshowsize", $simplefilelist_defaults)) $params['tableshowsize']=1;
+		if (in_array("groupbyext", $simplefilelist_defaults)) $params['groupbyext']=1;
+        }
+
         // Trim list separator
         $params['listsep'] = trim($params['listsep'], '"');
 
@@ -119,6 +136,33 @@ class syntax_plugin_filelist extends DokuWiki_Syntax_Plugin {
         if ($mode == 'odt') {
             $this->is_odt_export = true;
         }
+
+        // OSP extesion
+	// if simplefilelist: build toolbar
+	// FIXME: That is not clean!
+        $listtoolbar = "";
+	if ( $pattern[0] != ':' && $pattern[0] != '.' ) {
+		$pattern = ':' . $pattern;
+	}
+        // we don't want to use $conf['media'] here as that path has symlinks resolved
+	if (!$params['direct'] && $type == 'filelist') {
+		// leave the pattern untouched, but get the media-path 
+		// for the file manager link in the toolbar
+		$mmpath = $pattern;
+		// strip everything after the last ":"
+		$mmpath = preg_replace('/^(.*):.*$/', '$1', $mmpath);
+                if ($mmpath[0] == '.') {	
+		    $mmpath = preg_replace('/^\./', '', $mmpath);
+                    $mmpath = ":" . getNS(cleanID(getID())) . ":" . $mmpath;
+                }
+                if ($params['toolbar'] && auth_quickaclcheck($pattern)>=AUTH_UPLOAD ) {
+                    $listtoolbar .= "<div class=\"filelist-toolbar\">".DOKU_LF;
+                    $listtoolbar .=  "<a href=\"".DOKU_BASE."lib/exe/mediamanager.php?ns=".$mmpath."\" rel=\"nofollow\" class=\"filelist-editfiles\" target=\"mediamanger\">".$this->getLang('edit_files')."</a>";
+                    $listtoolbar .=  "<a href=\"javascript:window.location.reload()\" class=\"filelist-refresh\">".$this->getLang('refresh_filelist') ."</a>";
+                    $listtoolbar .= "</div>".DOKU_LF;
+                }
+        }
+
         
         // disable caching
         $renderer->info['cache'] = (bool) $params['cache'];
@@ -142,6 +186,7 @@ class syntax_plugin_filelist extends DokuWiki_Syntax_Plugin {
             if (($type == 'filelist') && ($params['limit'] != 0)) {
                 $result['files'] = array_slice($result['files'], $params['offset'], $params['limit']);
             }
+	
 
             switch ($type) {
 
@@ -154,6 +199,7 @@ class syntax_plugin_filelist extends DokuWiki_Syntax_Plugin {
                     return true;
 
                 case 'filelist':
+
                     if (count($result['files']) == 0)
                         break;
 
@@ -162,6 +208,7 @@ class syntax_plugin_filelist extends DokuWiki_Syntax_Plugin {
                         case 'olist':
                             if (!$this->is_odt_export) {
                                 $renderer->doc .= '<div class="filelist-plugin">'.DOKU_LF;
+				$renderer->doc .= $listtoolbar.DOKU_LF;
                             }
                             $this->_render_list($result, $params, $renderer);
                             if (!$this->is_odt_export) {
@@ -172,6 +219,7 @@ class syntax_plugin_filelist extends DokuWiki_Syntax_Plugin {
                         case 'table':
                             if (!$this->is_odt_export) {
                                 $renderer->doc .= '<div class="filelist-plugin">'.DOKU_LF;
+				$renderer->doc .= $listtoolbar.DOKU_LF;
                             }
                             $this->_render_table($result, $params, $pos, $renderer);
                             if (!$this->is_odt_export) {

@@ -4,7 +4,7 @@
  *
  * english version
  *
- * @author Gina Haeussge <osd@foosel.net>
+ * @hor Gina Haeussge <osd@foosel.net>
  */
 
 $lang['filename'] = 'Filename';
@@ -14,3 +14,6 @@ $lang['error_nomatch'] = 'No match';
 $lang['error_outsidejail'] = 'Access denied';
 $lang['preview'] = 'Preview';
 $lang['filetype'] = 'Filetype';
+$lang['edit_files'] = 'Edit files';
+$lang['refresh_filelist'] = 'Refresh';
+$lang['js']['button'] = 'List files from current namespace';

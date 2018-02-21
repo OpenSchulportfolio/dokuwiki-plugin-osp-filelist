@@ -48,3 +48,16 @@ jQuery(function () {
             .css("position", "absolute");
     });
 });
+
+/**
+ * Append a toolbar button
+ */
+if (typeof window.toolbar !== 'undefined') {
+    toolbar[toolbar.length] = {
+        type: "insert",
+        title: LANG['plugins']['filelist']['button'],
+        icon: "../../plugins/filelist/flbutton.png",
+        key: "",
+        insert: "{{simplefilelist>.:*}}"
+    };
+}
