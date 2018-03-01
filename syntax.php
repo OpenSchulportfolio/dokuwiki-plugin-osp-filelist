@@ -175,6 +175,7 @@ class syntax_plugin_filelist extends DokuWiki_Syntax_Plugin {
 
             // if we got nothing back, display a message
             if ($result == DOKU_PLUGIN_FILELIST_NOMATCH) {
+		$renderer->doc .= $listtoolbar.DOKU_LF;
                 $renderer->cdata('[n/a: ' . $this->getLang('error_nomatch') . ']');
                 return true;
             } else if ($result == DOKU_PLUGIN_FILELIST_OUTSIDEJAIL) {
