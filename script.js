@@ -51,13 +51,16 @@ jQuery(function () {
 
 /**
  * Append a toolbar button
- */
+*/
 if (typeof window.toolbar !== 'undefined') {
+    var insertcode = "{{simplefilelist>:";	
+    insertcode=insertcode.concat(JSINFO.namespace, ":*}}");
     toolbar[toolbar.length] = {
         type: "insert",
         title: LANG['plugins']['filelist']['button'],
         icon: "../../plugins/filelist/flbutton.png",
         key: "",
-        insert: "{{simplefilelist>.:*}}"
+        insert: insertcode
     };
-}
+};
+

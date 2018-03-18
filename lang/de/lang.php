@@ -17,3 +17,4 @@ $lang['filetype'] = 'Dateityp';
 $lang['edit_files'] = 'Dateien bearbeiten';
 $lang['refresh_filelist'] = 'Aktualisieren';
 $lang['js']['button'] = 'Dateiliste des aktuellen Namensraums';
+$lang['button'] = 'Dateiliste des aktuellen Namensraums';
