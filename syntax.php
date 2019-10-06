@@ -89,6 +89,7 @@ class syntax_plugin_filelist extends DokuWiki_Syntax_Plugin {
             'link' => 2,
             'showsize' => 0,
             'showdate' => 0,
+            'showcreator' => 0,
             'listsep' => '", "',
             'onhover' => 0,
             'ftp' => 0,
@@ -389,6 +390,11 @@ class syntax_plugin_filelist extends DokuWiki_Syntax_Plugin {
                     $renderer->cdata($params['listsep'].strftime($conf['dformat'], $file['mtime']));
                 }
 
+                // render lastmodified
+                if ($params['showcreator']) {
+                    $renderer->cdata($params['listsep'].$file['creator']);
+                }
+
                 // close list item
                 if ($this->is_odt_export) {
                     $renderer->p_close();
@@ -429,6 +435,9 @@ class syntax_plugin_filelist extends DokuWiki_Syntax_Plugin {
             if ($params['tableshowdate'] || $params['showdate']) {
                 $columns++;
             }
+            if ($params['showcreator']) {
+                $columns++;
+            }
             if ($params['preview']) {
                 $columns++;
             }
@@ -453,6 +462,12 @@ class syntax_plugin_filelist extends DokuWiki_Syntax_Plugin {
             if ($params['tableshowdate'] || $params['showdate']) {
                 $renderer->tableheader_open();
                 $renderer->cdata($this->getLang('lastmodified'));
+                $renderer->tableheader_close();
+            }
+
+            if ($params['showcreator']) {
+                $renderer->tableheader_open();
+                $renderer->cdata($this->getLang('createdby'));
                 $renderer->tableheader_close();
             }
 
@@ -492,6 +507,12 @@ class syntax_plugin_filelist extends DokuWiki_Syntax_Plugin {
             if ($params['tableshowdate'] || $params['showdate']) {
                 $renderer->tablecell_open();
                 $renderer->cdata(strftime($conf['dformat'], $file['mtime']));
+                $renderer->tablecell_close();
+            }
+
+            if ($params['showcreator']) {
+                $renderer->tablecell_open();
+                $renderer->cdata($file['creator']);
                 $renderer->tablecell_close();
             }
 
@@ -582,9 +603,15 @@ class syntax_plugin_filelist extends DokuWiki_Syntax_Plugin {
      * @return void
      */
     protected function _render_preview_image ($filepath, $basedir, $webdir, $params, Doku_Renderer $renderer) {
-        $imagepath = $this->get_preview_image_path($filepath, $params);
+        $imagepath = $this->get_preview_image_path($filepath, $params, $isImage);
         if (!empty($imagepath)) {
-            $imgLink = $this->_get_link_url ($imagepath, $basedir, $webdir, 0, 1);
+            if ($isImage == false) {
+                // Generate link to returned filetype icon
+                $imgLink = $this->_get_link_url ($imagepath, $basedir, $webdir, 0, 1);
+            } else {
+                // Generate link to image file
+                $imgLink = $this->_get_link_url ($filepath, $basedir, $webdir, $params['randlinks'], $params['direct'], $params['ftp']);
+            }
 
             $previewsize = $params['previewsize'];
             if ($previewsize == 0) {
@@ -594,7 +621,7 @@ class syntax_plugin_filelist extends DokuWiki_Syntax_Plugin {
             if ($params['onhover']) {
                 $imgclass = 'class="filelist_preview"';
             }
-            
+
             if (!$this->is_odt_export) {
                 $renderer->doc .= '<img '.$imgclass.' style=" max-height: '.$previewsize.'px; max-width: '.$previewsize.'px;" src="'.$imgLink.'">';
             } else {
@@ -860,7 +887,22 @@ class syntax_plugin_filelist extends DokuWiki_Syntax_Plugin {
                     }
 
                     // prepare entry
+                    $creator = '';
                     if (!is_dir($filepath) || $params['recursive']) {
+                        if (!$params['direct']) {
+                            $medialog = new MediaChangeLog($mid);
+                            $revinfo = $medialog->getRevisionInfo(@filemtime(fullpath(mediaFN($mid))));
+
+                            if($revinfo['user']) {
+                                $creator = $revinfo['user'];
+                            } else {
+                                $creator = $revinfo['ip'];
+                            }
+                        }
+                        if (empty($creator)) {
+                            $creator = $this->getLang('creatorunknown');
+                        }
+
                         $entry = array(
                             'name' => $filename,
                             'path' => $filepath,
@@ -869,6 +911,7 @@ class syntax_plugin_filelist extends DokuWiki_Syntax_Plugin {
                             'size' => filesize($filepath),
                             'children' => ((is_dir($filepath) && $params['recursive']) ? $this->_crawl_files($filepath . '/' . $match, $params) : false),
                             'treesize' => 0,
+                            'creator' => $creator,
                         );
 
                         // calculate tree size
@@ -1020,7 +1063,7 @@ class syntax_plugin_filelist extends DokuWiki_Syntax_Plugin {
             return ($path[0] == '/');
         }
     }
-    
+
     function _convert_mediapath($path) {
         $mid = str_replace('/', ':', substr($path, strlen($this->mediadir))); // strip media base dir
         return ltrim($mid, ':'); // strip leading :
@@ -1038,13 +1081,15 @@ class syntax_plugin_filelist extends DokuWiki_Syntax_Plugin {
      * @param $filename the file to check
      * @return string Image to use for preview image
      */
-    protected function get_preview_image_path ($filename, $params) {
+    protected function get_preview_image_path ($filename, $params, &$isImage) {
         list($ext,$mime) = mimetype(basename($filename));
         $imagepath = '';
+        $isImage = false;
         if (($params['preview'] == 1 || $params['preview'] == 2) &&
             strncmp($mime, 'image', strlen('image')) == 0) {
             // The file is an image. Return itself as the image path.
             $imagepath = $filename;
+            $isImage = true;
         }
         if (($params['preview'] == 1 && empty($imagepath)) ||
             $params['preview'] == 3 ) {
